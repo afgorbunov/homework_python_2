@@ -2,10 +2,10 @@ from datetime import datetime
 
 from pony.orm import commit, db_session, select
 
-from protocol import make_response
+from server.protocol import make_response
 
 
-def get_login_pair(request):
+def _get_login_pair(request):
     return request.get('data').split(' ')
 
 def get_523(request):
@@ -13,10 +13,13 @@ def get_523(request):
 
 @db_session
 def set_user(request, db=None):
-    login_pair = get_login_pair(request)
+    login_pair = _get_login_pair(request)
     if db:
         user = db.User(
-            login=login_pair[0], pswdhash=login_pair[1], last_login=datetime.now())
+            login=login_pair[0], 
+            pswdhash=login_pair[1], 
+            last_login=datetime.now(),
+        )
         commit()
         request['user'] = user.login
         return make_response(request, 201, data='Пользователь зарегестрирован')

@@ -1,6 +1,6 @@
 from pony import orm
 from datetime import datetime
-from db import db
+from server.db import db
 
 model_names = ['User', ]
 
