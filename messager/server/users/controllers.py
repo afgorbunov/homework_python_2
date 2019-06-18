@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pony.orm import commit, db_session, select
 
-from server.protocol import make_response
+from protocol import make_response
 
 
 def _get_login_pair(request):

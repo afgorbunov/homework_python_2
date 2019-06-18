@@ -2,6 +2,7 @@ from socket import *
 import re
 from datetime import datetime
 from json import dumps, loads
+import zlib
 
 # request     - объект запроса пользователя
 # response    - объект ответа сервера на запрос пользователя
@@ -60,8 +61,10 @@ while flag:
             'time': get_timestamp(),
         }
 
-    s.send(dumps(request, ensure_ascii=False).encode('utf-8'))
-    response = loads(s.recv(1_000_000).decode('utf-8'))
+    b_request = zlib.compress(dumps(request, ensure_ascii=False).encode('utf-8'))
+    s.send(b_request)
+    b_response = loads(s.recv(1_000_000).decode('utf-8'))
+    response = zlib.decompress(b_response)
     if response['code'] == 200:
         if (cmd == '.echo') and ('data' in request):
             print(f'%server {response["time"]}\n>>>\t{response["data"]}')

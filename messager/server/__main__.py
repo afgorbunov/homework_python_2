@@ -1,11 +1,15 @@
+import logging
 import re
 import time
 from json import dumps, loads
 from socket import *
+from zipfile import error
 
 from actions import resolve
-from protocol import validate_request, make_response
 from db import db
+from handlers import handle_default_request
+from protocol import make_response, validate_request
+from settings import LOGGER, ENCODING
 
 # request     - объект запроса пользователя
 # response    - объект ответа сервера на запрос пользователя
@@ -14,7 +18,16 @@ flag = True
 host = '0.0.0.0'
 port = 8888
 buffer_size = 1_000_000
-encoding = 'utf-8'
+
+
+logging.basicConfig(
+    level = LOGGER['level'],
+    format = LOGGER['format'],
+    handlers=[
+        logging.FileHandler(LOGGER['path'], encoding=LOGGER['encoding']),
+        logging.StreamHandler(),
+    ]
+)
 
 s = socket(AF_INET, SOCK_STREAM)
 s.bind((host, port))
@@ -24,23 +37,14 @@ s.listen(5)
 try:
     while flag:
         client, addr = s.accept()
+        logging.debug(f'Соединение клиента с адресом {addr}')
 
-        request = loads(client.recv(buffer_size).decode(encoding))
-        if validate_request(request):
-            controller = resolve(request['action'])
-            if controller:
-                try:
-                    response = controller(request, db=db)
-                except Exception as err:
-                    print(err)
-                    response = make_response(
-                        request, 500, 'Внутренняя ошибка сервера')
-            else:
-                response = make_response(request, 404, "Действие не найдено")
-        else:
-            response = make_response(request, 400, "Некорректный запрос")
+        b_request = loads(client.recv(buffer_size))
+        logging.debug(f'От клиента с адресом {addr} получен запрос с действием {request["action"]}')
 
-        client.send(dumps(response, ensure_ascii=False).encode(encoding))
+        b_response = handle_default_request(b_request)
+
+        client.send(dumps(response, ensure_ascii=False).encode(ENCODING))
         client.close()
 except KeyboardInterrupt:
     pass
