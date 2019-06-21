@@ -2,17 +2,10 @@ from socket import *
 import re
 from datetime import datetime
 from json import dumps, loads
-from argparse import ArgumentParser
 import zlib
 
 # request     - объект запроса пользователя
 # response    - объект ответа сервера на запрос пользователя
-
-parser = ArgumentParser()
-parser.add_argument(
-    '-m', '--mode', type=str, default='w',
-    help='Установка режима клиента'
-)
 
 s = socket(AF_INET, SOCK_STREAM)
 s.connect(('localhost', 8888))
@@ -70,7 +63,8 @@ while flag:
 
     b_request = zlib.compress(dumps(request, ensure_ascii=False).encode('utf-8'))
     s.send(b_request)
-    response = loads(zlib.decompress(s.recv(1_000_000)).decode('utf-8'))
+    b_response = loads(s.recv(1_000_000).decode('utf-8'))
+    response = zlib.decompress(b_response)
     if response['code'] == 200:
         if (cmd == '.echo') and ('data' in request):
             print(f'%server {response["time"]}\n>>>\t{response["data"]}')
