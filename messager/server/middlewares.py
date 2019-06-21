@@ -23,7 +23,7 @@ def compression_middleware(func):
         return zlib.compress(b_response)
     return wrapper
 
-def loggind_middleware(func):
+def logging_middleware(func):
     def wrapper(request, *args, **kwargs):
         try:
             json_response = func(request, *args, **kwargs)

@@ -12,6 +12,7 @@ from settings import ENCODING
 @logging_middleware
 def handle_default_request(raw_request):
     request = json.loads(raw_request.decode(ENCODING))
+    logging.debug(f'Получен запрос с действием {request["action"]}')
     action_name = request.get('action')
     if validate_request(request):
         controller = resolve(request['action'])
@@ -22,4 +23,4 @@ def handle_default_request(raw_request):
     else:
         response = make_response(request, 400, 'Некорректный запрос')
 
-    return json.dumps(response).encode(ENCODING)
+    return json.dumps(response, ensure_ascii=False).encode(ENCODING)
