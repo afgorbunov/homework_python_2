@@ -1,6 +1,7 @@
 import logging
 import re
 import time
+import select
 from json import dumps, loads
 from socket import *
 from zipfile import error
@@ -31,20 +32,35 @@ logging.basicConfig(
 
 s = socket(AF_INET, SOCK_STREAM)
 s.bind((host, port))
+s.setblocking(False)
 print(f'Запуск серверной части мессенджера с параметрами: {host}:{port}')
 s.listen(5)
 
+requests = []
+connections = []
+
 try:
     while flag:
-        client, addr = s.accept()
-        logging.debug(f'Соединение клиента с адресом {addr}')
+        try:
+            client, addr = s.accept()
+            logging.debug(f'Соединение клиента с адресом {addr}')
+            connections.append(client)
+        except:
+            pass
 
-        b_request = loads(client.recv(buffer_size))
-        logging.debug(f'От клиента с адресом {addr} получен запрос с действием {request["action"]}')
+        rlist, wlist, xlist = select.select(
+            connections, connections, connections, 0
+        )
 
-        b_response = handle_default_request(b_request)
+        for rclient in rlist:
+            b_request = rclient.recv(buffer_size)
+            requests.append(b_request)
 
-        client.send(dumps(response, ensure_ascii=False).encode(ENCODING))
-        client.close()
+        if requests:
+            b_request = requests.pop()
+            b_response = handle_default_request(b_request)
+
+            for wclient in wlist:
+                wclient.send(dumps(response, ensure_ascii=False).encode(ENCODING))
 except KeyboardInterrupt:
     pass
