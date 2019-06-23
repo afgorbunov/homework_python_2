@@ -1,16 +1,17 @@
 import logging
 import re
-import time
 import select
+import time
 from json import dumps, loads
 from socket import *
+from threading import Thread
 from zipfile import error
 
 from actions import resolve
 from db import db
 from handlers import handle_default_request
 from protocol import make_response, validate_request
-from settings import LOGGER, ENCODING
+from settings import ENCODING, LOGGER
 
 # request     - объект запроса пользователя
 # response    - объект ответа сервера на запрос пользователя
@@ -39,6 +40,13 @@ s.listen(5)
 requests = []
 connections = []
 
+def read(client, requests, buffer_size):
+    b_request = client.recv(buffer_size)
+    requests.append(b_request)
+
+def write(client, response):
+    client.send(response)
+
 try:
     while flag:
         try:
@@ -53,14 +61,17 @@ try:
         )
 
         for rclient in rlist:
-            b_request = rclient.recv(buffer_size)
-            requests.append(b_request)
+            rthread = Thread(target=read, args=(rclient, requests, buffer_size))
+            rthread.start()
 
         if requests:
             b_request = requests.pop()
-            b_response = handle_default_request(b_request)
+            response = handle_default_request(b_request)
 
             for wclient in wlist:
                 wclient.send(dumps(response, ensure_ascii=False).encode(ENCODING))
+
+            wthread = Thread(target=write, args=(wclient, dumps(response, ensure_ascii=False).encode(ENCODING)))
+            wthread.start()
 except KeyboardInterrupt:
     pass

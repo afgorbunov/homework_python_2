@@ -1,9 +1,10 @@
-from socket import *
 import re
-from datetime import datetime
-from json import dumps, loads
 import zlib
 from argparse import ArgumentParser
+from datetime import datetime
+from json import dumps, loads
+from socket import *
+from threading import Thread
 
 # request     - объект запроса пользователя
 # response    - объект ответа сервера на запрос пользователя
@@ -33,7 +34,7 @@ def get_inp():
 def get_timestamp():
     return str(datetime.now())
 
-if args.mode == 'w':
+def write():
     while flag:
         inp = get_inp()
 
@@ -73,7 +74,8 @@ if args.mode == 'w':
 
         b_request = zlib.compress(dumps(request, ensure_ascii=False).encode('utf-8'))
         s.send(b_request)
-else:
+
+def read():
     b_response = loads(s.recv(1_000_000).decode('utf-8'))
     response = zlib.decompress(b_response)
     if response['code'] == 200:
@@ -83,4 +85,13 @@ else:
             user = response['user']
         if (cmd == '.login')  and ('data' in request):
             print(response)
+
+if args.mode == 'w':
+    write()
+elif args.mode == 'rw':
+    rthread = Thread(target=read, daemon=True)
+    rthread.start()
+    write()
+else:
+    read()
     print('response:', response)
